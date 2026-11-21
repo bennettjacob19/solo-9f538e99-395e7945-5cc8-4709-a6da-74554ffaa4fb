@@ -10,6 +10,9 @@ services:
     environment:
       CCACHE_CACHE_DIR: /data/cache
       CCACHE_GCC_TIMEOUT: "30"
+      # Binutils used by the POST /trim static-library trimming API.
+      CCACHE_NM_BIN: "nm"
+      CCACHE_READELF_BIN: "readelf"
     restart: unless-stopped
 
 volumes:

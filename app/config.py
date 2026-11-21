@@ -14,6 +14,10 @@ CACHE_DIR = Path(os.environ.get("CCACHE_CACHE_DIR", "/data/cache")).resolve()
 GCC_BIN = os.environ.get("CCACHE_GCC_BIN", "gcc")
 GCC_TIMEOUT = int(os.environ.get("CCACHE_GCC_TIMEOUT", "30"))
 
+# Binutils used by the /trim static-library trimming API.
+NM_BIN = os.environ.get("CCACHE_NM_BIN", "nm")
+READELF_BIN = os.environ.get("CCACHE_READELF_BIN", "readelf")
+
 _write_lock = threading.Lock()
 _invalidation_stats: dict[str, int] = {}
 

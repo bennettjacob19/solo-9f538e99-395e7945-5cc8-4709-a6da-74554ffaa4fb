@@ -1,9 +1,11 @@
 FROM python:3.11-slim
 
-# GCC is the actual worker behind the cache.
+# GCC is the worker behind /compile; it depends on binutils (nm, readelf,
+# ar, ld) which the /trim firmware library-trimming API parses artifacts with.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc libc6-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get install -y --no-install-recommends gcc libc6-dev binutils \
+    && rm -rf /var/lib/apt/lists/* \
+    && nm --version | head -1 && readelf --version | head -1
 
 WORKDIR /srv
 

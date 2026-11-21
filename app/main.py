@@ -33,17 +33,25 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 
 from . import config
+from .trim_api import router as trim_router
 
 app = FastAPI(
-    title="C Compilation Cache",
-    version="1.0.0",
+    title="C Compilation Cache & Firmware Library Trimmer",
+    version="1.1.0",
     description=(
         "Compile C sources with GCC and serve cached ``.o`` files. Headers are "
         "supplied per request in flat directory groups; only the headers "
         "actually used by the preprocessor are part of the cache key. "
-        "Every response carries an ``X-Cache: HIT|MISS`` header."
+        "Every response carries an ``X-Cache: HIT|MISS`` header.\n\n"
+        "The **POST /trim** endpoint additionally performs firmware release "
+        "trimming: given the main ``.o`` and up to six ordered ``.a`` static "
+        "libraries, it simulates GNU ld bare-metal static linking and returns "
+        "the shortest ordered library list that still links while keeping "
+        "every requested board hook provided by its original object file."
     ),
 )
+
+app.include_router(trim_router)
 
 STATS = {"hits": 0, "misses": 0, "failures": 0}
 
@@ -398,17 +406,26 @@ def _run_gcc(
 
 @app.get("/health")
 def health() -> dict[str, Any]:
-    try:
-        ver = subprocess.run(
-            [config.GCC_BIN, "--version"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=True,
-        ).stdout.splitlines()[0]
-    except (OSError, subprocess.SubprocessError) as exc:  # pragma: no cover
-        ver = f"unavailable ({exc})"
-    return {"status": "ok", "gcc": ver, "cache_dir": str(config.CACHE_DIR)}
+    def _version(binary: str) -> str:
+        try:
+            out = subprocess.run(
+                [binary, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=True,
+            ).stdout.splitlines()[0]
+        except (OSError, subprocess.SubprocessError) as exc:  # pragma: no cover
+            out = f"unavailable ({exc})"
+        return out
+
+    return {
+        "status": "ok",
+        "gcc": _version(config.GCC_BIN),
+        "nm": _version(config.NM_BIN),
+        "readelf": _version(config.READELF_BIN),
+        "cache_dir": str(config.CACHE_DIR),
+    }
 
 
 @app.get("/stats")
